@@ -7,16 +7,20 @@ function App() {
   const [shops, setShops] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState([]);
+  const limit = 5;
   // fetch data => fetch / axios
   useEffect(() => {
     const fetchShops = async () => {
       setLoading(true);
       try {
         const response = await axios.get("http://localhost:3000/api/v1/shops");
-        console.log(response);
         const data = response.data;
         if(data.isSuccess){
           setShops(data.data.shops);
+          setFilter(data.data.shops);
         } else {
           setError("error");
         };
@@ -28,6 +32,22 @@ function App() {
     };
     fetchShops();
   }, []);
+  // Filter
+  useEffect(() => {
+    const filtered = shops.filter(shop =>
+      shop.products[0].name.includes(search)
+    );
+    setFilter(filtered);
+    setPage(1);
+  }, [search, shops]);
+  // Pagination
+  const totalData = page * limit;
+  const pageData = totalData - limit;
+  const currentShops = filter.slice(pageData, totalData);
+  const pagination = (pageNumber) => {
+    setPage(pageNumber);
+  };
+  const totalPages = Math.ceil(filter.length / limit);
   return (
     <>
       <header className="flex justify-between p-4 bg-white shadow-md">
@@ -53,11 +73,20 @@ function App() {
         </button>
       </header>
       <main className="text-center">
+        <div className="mt-8 mb-4">
+          <input
+            type="text"
+            placeholder="Search by shop name"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="p-2 border border-gray-300 rounded-md"
+          />
+        </div>
         {loading && <p> loading . . . .</p>}
         {error && <p>{error}</p>}
         {!loading && !error && (
           <section className="max-w-6xl mx-auto mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"> 
-            {shops.map((shop, index) => ( 
+            {currentShops.map((shop, index) => ( 
               <div key={index} className="p-4 border rounded-md bg-white shadow-md"> 
                 <img
                   src={shop.products[0].images[0]} 
@@ -82,6 +111,19 @@ function App() {
               </div> ))} 
           </section>
         )}
+        <div className="flex justify-center mt-8">
+          {Array.from({length: totalPages}, (_,i) => (
+            <button
+              key ={i}
+              onClick={() => pagination(i+1)}
+              className={`px-4 py-2 mx-1 ${
+                page === i + 1 ? "bg-blue-500 text-white" : "bg-gray-300 text-gray-700"
+              } rounded-md`}
+            >
+              {i+1}
+            </button>
+          ))}
+        </div>
       </main> 
     </>
   );
